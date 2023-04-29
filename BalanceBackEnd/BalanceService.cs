@@ -62,7 +62,8 @@ namespace BalanceBackEnd
             }
 
             double[,] A = new double[numberOfEqualities + threadNum * 2, threadNum];
-            double[,] AGT = new double[numberOfEqualities, threadNum];
+            double[,] AGT = new double[numberOfEqualities, threadNum]; //матрица для прохождения глобального теста. A не подходит, так как содержит
+                                                                       //дополнительные строки с ограничениями, которые порят расчёт
             for (int i = 0; i < numberOfEqualities; i++)
             {
                 for (int j = 0; j < threadNum; j++)
@@ -115,6 +116,75 @@ namespace BalanceBackEnd
             return solver;
         }
 
+        public double GlobalTest(BalanceInput balanceInput)
+        {
+            int threadNum = balanceInput.Flows.Count;
+
+            int numberOfEqualities = GetNumThreads(balanceInput); //количество узлов
+
+            double[,] W = new double[threadNum, threadNum];
+            for (int i = 0; i < threadNum; i++)
+            {
+                for (int j = 0; j < threadNum; j++)
+                {
+                    if (i == j)
+                        W[i, j] = 1 / (balanceInput.Flows[i].Tolerance * balanceInput.Flows[i].Tolerance);
+                    else W[i, j] = 0;
+                }
+            }
+
+            double[,] I = new double[threadNum, threadNum];
+            for (int i = 0; i < threadNum; i++)
+            {
+                for (int j = 0; j < threadNum; j++)
+                {
+                    if (i == j)
+                        I[i, j] = 1;
+                    else I[i, j] = 0;
+                }
+            }
+
+            double[] x0 = new double[threadNum];
+            for (int i = 0; i < threadNum; i++)
+            {
+                x0[i] = balanceInput.Flows[i].Measured;
+            }
+
+            double[,] AGT = new double[numberOfEqualities, threadNum]; //матрица для прохождения глобального теста. A не подходит, так как содержит
+                                                                       //дополнительные строки с ограничениями, которые порят расчёт
+            for (int i = 0; i < numberOfEqualities; i++)
+            {
+                for (int j = 0; j < threadNum; j++)
+                {
+                    if (i + 1 == balanceInput.Flows[j].Out)
+                    {
+                        AGT[i, j] = -1;
+                    }
+                    else if (i + 1 == balanceInput.Flows[j].In)
+                    {
+                        AGT[i, j] = 1;
+                    }
+                    else
+                    {
+                        AGT[i, j] = 0;
+                    }
+                }
+            }
+
+            var temp = new SparseVector(threadNum);
+            var temp2 = new SparseVector(threadNum);
+            for (int i = 0; i < threadNum; i++)
+            {
+                temp[i] = I[i, i];
+                temp2[i] = Math.Sqrt((1 / W[i, i]));
+
+            }
+            var measurability = temp.ToArray();
+            var tolerance = temp2.ToArray();
+
+            return StartGlobalTest(x0, AGT, measurability, tolerance);
+        }
+
         public double StartGlobalTest(double[] x0, double[,] a, double[] measurability, double[] tolerance)
         {
             var aMatrix = SparseMatrix.OfArray(a); 
@@ -138,10 +208,10 @@ namespace BalanceBackEnd
             var r = aMatrix * x0Vector;
             var v = aMatrix * sigma * aTransposedMatrix;
             var vv = v.ToArray();
-            vv = vv.PseudoInverse();
+            vv = vv.PseudoInverse(); //Псевдоинверсия
             v = SparseMatrix.OfArray(vv);
-            var result = r * v * r.ToColumnMatrix();
-            var chi = ChiSquared.InvCDF(aMatrix.RowCount, 1 - 0.05);
+            var result = r * v * r.ToColumnMatrix(); // GT_ORIGINAL
+            var chi = ChiSquared.InvCDF(aMatrix.RowCount, 1 - 0.05); // хи-квадрат (Степени свободы, 1-alpha), он же GT_LIMIT
             // нормирование
             return result[0] / chi;
         }

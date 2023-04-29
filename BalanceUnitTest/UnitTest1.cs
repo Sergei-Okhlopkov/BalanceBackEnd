@@ -405,6 +405,109 @@ namespace BalanceUnitTest
             Assert.IsInstanceOfType(result, typeof(ActionResult<double[]>));
         }
 
-        
+        [TestMethod]
+        public void GTValue_Test()
+        {
+            BalanceInput BI = new BalanceInput();
+
+            #region Задание потоков по модели
+
+            List<Flow> Flows = new List<Flow>();
+
+            //1
+            Flows.Add(new Flow
+            {
+                Id = Guid.NewGuid(),
+                Out = 0,
+                In = 1,
+                Tolerance = 0.200,
+                Measured = 10.0054919341489,
+                Min = 0,
+                Max = 1000
+            });
+
+            //2
+            Flows.Add(new Flow
+            {
+                Id = Guid.NewGuid(),
+                Out = 1,
+                In = 0,
+                Tolerance = 0.121,
+                Measured = 3.03265795024749,
+                Min = 0,
+                Max = 1000
+            });
+
+            //3
+            Flows.Add(new Flow
+            {
+                Id = Guid.NewGuid(),
+                Out = 1,
+                In = 2,
+                Tolerance = 0.683,
+                Measured = 6.83122010827837,
+                Min = 0,
+                Max = 1000
+            });
+
+            //4
+            Flows.Add(new Flow
+            {
+                Id = Guid.NewGuid(),
+                Out = 2,
+                In = 0,
+                Tolerance = 0.040,
+                Measured = 1.98478460320379,
+                Min = 0,
+                Max = 1000
+            });
+
+            //5
+            Flows.Add(new Flow
+            {
+                Id = Guid.NewGuid(),
+                Out = 2,
+                In = 3,
+                Tolerance = 0.102,
+                Measured = 5.09293357450987,
+                Min = 0,
+                Max = 1000
+            });
+
+            //6
+            Flows.Add(new Flow
+            {
+                Id = Guid.NewGuid(),
+                Out = 3,
+                In = 0,
+                Tolerance = 0.081,
+                Measured = 4.05721328676762,
+                Min = 0,
+                Max = 1000
+            });
+
+            //7
+            Flows.Add(new Flow
+            {
+                Id = Guid.NewGuid(),
+                Out = 3,
+                In = 0,
+                Tolerance = 0.020,
+                Measured = 0.991215230484718,
+                Min = 0,
+                Max = 1000
+            });
+
+            BI.Flows = Flows;
+
+            #endregion
+
+            double GT = new BalanceService().GlobalTest(BI);
+
+            bool condition = GT < 1;
+
+            Assert.AreEqual(true, condition);
+        }
+
     }
 }

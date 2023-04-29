@@ -19,5 +19,11 @@ namespace BalanceBackEnd.Controllers
             return solver.Solution;
         }
 
+        [HttpPost("getGT")]
+        public ActionResult<double> GlobalTest([FromBody] BalanceInput data)
+        {
+            return new BalanceService().GlobalTest(data);
+        }
+
     }
 }
